@@ -39,25 +39,39 @@ export const fillTemplate = (template: string, client: Client): string => {
     .replace(/{expiryDate}/g, new Date(client.expiryDate).toLocaleDateString());
 };
 
-// Mock WhatsApp API send function
+// WhatsApp API send function using 360Messenger
 export const sendWhatsAppMessage = async (phoneNumber: string, message: string): Promise<boolean> => {
-  // Simulate API call
-  console.log('Sending WhatsApp message to:', phoneNumber);
-  console.log('Message:', message);
-  
-  // In production, this would call 360Messenger API:
-  // const response = await fetch('https://api.360messenger.com/send', {
-  //   method: 'POST',
-  //   headers: {
-  //     'Authorization': `Bearer ${API_KEY}`,
-  //     'Content-Type': 'application/json',
-  //   },
-  //   body: JSON.stringify({ to: phoneNumber, message }),
-  // });
-  
-  return new Promise((resolve) => {
-    setTimeout(() => resolve(true), 1000);
-  });
+  try {
+    const apiKey = localStorage.getItem('whatsapp_api_key');
+    
+    if (!apiKey) {
+      console.warn('WhatsApp API key not configured');
+      return false;
+    }
+
+    const formData = new FormData();
+    formData.append('phonenumber', phoneNumber);
+    formData.append('text', message);
+
+    const response = await fetch('https://api.360messenger.com/v2/sendMessage', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('WhatsApp API error:', errorText);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Failed to send WhatsApp message:', error);
+    return false;
+  }
 };
 
 // Format date for display

@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { storage, Client, HostUrl, WhatsAppTemplate } from '@/lib/storage';
+import { storage, Client, HostUrl } from '@/lib/storage';
 import { generateCredentials, calculateExpiryDate, fillTemplate, sendWhatsAppMessage } from '@/lib/utils-iptv';
 import { useToast } from '@/hooks/use-toast';
 
@@ -14,9 +14,11 @@ interface ClientModalProps {
   client: Client | null;
   hostUrls: HostUrl[];
   onSuccess: () => void;
+  isEditMode?: boolean;
 }
 
-const ClientModal = ({ open, onOpenChange, client, hostUrls, onSuccess }: ClientModalProps) => {
+const ClientModal = ({ open, onOpenChange, client, hostUrls, onSuccess, isEditMode = false }: ClientModalProps) => {
+  const [fullName, setFullName] = useState('');
   const [whatsappNumber, setWhatsappNumber] = useState('');
   const [selectedHostUrl, setSelectedHostUrl] = useState('');
   const [packageDuration, setPackageDuration] = useState<1 | 3 | 6 | 12>(1);
@@ -25,10 +27,12 @@ const ClientModal = ({ open, onOpenChange, client, hostUrls, onSuccess }: Client
 
   useEffect(() => {
     if (client) {
+      setFullName(client.fullName || '');
       setWhatsappNumber(client.whatsappNumber);
       setSelectedHostUrl(client.hostUrl);
       setPackageDuration(client.packageDuration);
     } else {
+      setFullName('');
       setWhatsappNumber('');
       setSelectedHostUrl(hostUrls[0]?.url || '');
       setPackageDuration(1);
@@ -37,15 +41,31 @@ const ClientModal = ({ open, onOpenChange, client, hostUrls, onSuccess }: Client
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!fullName.trim()) {
+      toast({
+        title: 'Error',
+        description: 'Please enter client full name',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
-      const credentials = client ? { username: client.username, password: client.password } : generateCredentials();
+      const credentials = (client && !isEditMode) ? { username: client.username, password: client.password } : 
+                         (client && isEditMode) ? { username: client.username, password: client.password } :
+                         generateCredentials();
+      
       const now = new Date();
-      const expiryDate = calculateExpiryDate(now, packageDuration);
+      const expiryDate = isEditMode 
+        ? new Date(client!.expiryDate) 
+        : calculateExpiryDate(client ? new Date(client.expiryDate) : now, packageDuration);
 
       const newClient: Client = {
         id: client?.id || crypto.randomUUID(),
+        fullName: fullName.trim(),
         username: credentials.username,
         password: credentials.password,
         hostUrl: selectedHostUrl,
@@ -63,18 +83,33 @@ const ClientModal = ({ open, onOpenChange, client, hostUrls, onSuccess }: Client
       
       storage.saveClients(updatedClients);
 
-      // Send WhatsApp message
-      const templates = storage.getTemplates();
-      const template = templates.find(t => t.type === (client ? 'renewal' : 'welcome'));
-      if (template) {
-        const message = fillTemplate(template.message, newClient);
-        await sendWhatsAppMessage(whatsappNumber, message);
+      // Send WhatsApp message only for new or renewed clients, not edits
+      if (!isEditMode) {
+        const templates = storage.getTemplates();
+        const template = templates.find(t => t.type === (client ? 'renewal' : 'welcome'));
+        if (template) {
+          const message = fillTemplate(template.message, newClient);
+          const sent = await sendWhatsAppMessage(whatsappNumber, message);
+          
+          if (sent) {
+            toast({
+              title: client ? 'Client renewed successfully' : 'Client created successfully',
+              description: 'WhatsApp notification sent',
+            });
+          } else {
+            toast({
+              title: client ? 'Client renewed' : 'Client created',
+              description: 'WhatsApp notification failed. Check API configuration.',
+              variant: 'destructive',
+            });
+          }
+        }
+      } else {
+        toast({
+          title: 'Client updated successfully',
+          description: 'Client information has been updated',
+        });
       }
-
-      toast({
-        title: client ? 'Client renewed successfully' : 'Client created successfully',
-        description: 'WhatsApp notification sent',
-      });
 
       onSuccess();
       onOpenChange(false);
@@ -93,22 +128,43 @@ const ClientModal = ({ open, onOpenChange, client, hostUrls, onSuccess }: Client
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{client ? 'Renew Client' : 'Add New Client'}</DialogTitle>
+          <DialogTitle>
+            {isEditMode ? 'Edit Client' : client ? 'Renew Client' : 'Add New Client'}
+          </DialogTitle>
           <DialogDescription>
-            {client ? 'Extend the subscription period' : 'Create a new IPTV client account'}
+            {isEditMode 
+              ? 'Update client information' 
+              : client 
+                ? 'Extend the subscription period' 
+                : 'Create a new IPTV client account'}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="fullName">Client Full Name</Label>
+            <Input
+              id="fullName"
+              type="text"
+              placeholder="Enter full name"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              required
+            />
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="whatsapp">WhatsApp Number</Label>
             <Input
               id="whatsapp"
               type="tel"
-              placeholder="+1234567890"
+              placeholder="447488888888"
               value={whatsappNumber}
               onChange={(e) => setWhatsappNumber(e.target.value)}
               required
             />
+            <p className="text-xs text-muted-foreground">
+              Enter phone number in international format (without +)
+            </p>
           </div>
 
           <div className="space-y-2">
@@ -127,27 +183,29 @@ const ClientModal = ({ open, onOpenChange, client, hostUrls, onSuccess }: Client
             </Select>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="package">Package Duration</Label>
-            <Select value={String(packageDuration)} onValueChange={(v) => setPackageDuration(Number(v) as 1 | 3 | 6 | 12)}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="1">1 Month</SelectItem>
-                <SelectItem value="3">3 Months</SelectItem>
-                <SelectItem value="6">6 Months</SelectItem>
-                <SelectItem value="12">12 Months</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          {!isEditMode && (
+            <div className="space-y-2">
+              <Label htmlFor="package">Package Duration</Label>
+              <Select value={String(packageDuration)} onValueChange={(v) => setPackageDuration(Number(v) as 1 | 3 | 6 | 12)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1">1 Month</SelectItem>
+                  <SelectItem value="3">3 Months</SelectItem>
+                  <SelectItem value="6">6 Months</SelectItem>
+                  <SelectItem value="12">12 Months</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           <div className="flex justify-end gap-2 pt-4">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Saving...' : client ? 'Renew' : 'Create'}
+              {isSubmitting ? 'Saving...' : isEditMode ? 'Update' : client ? 'Renew' : 'Create'}
             </Button>
           </div>
         </form>

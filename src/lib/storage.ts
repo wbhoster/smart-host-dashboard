@@ -1,6 +1,7 @@
 // Local storage utilities for simulating backend
 export interface Client {
   id: string;
+  fullName: string;
   username: string;
   password: string;
   hostUrl: string;

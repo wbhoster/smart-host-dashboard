@@ -54,14 +54,41 @@ const WhatsAppAPI = () => {
     }
 
     setIsLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false);
-      toast({
-        title: 'Test Message Sent',
-        description: `Test message sent to ${testPhone}`,
+    try {
+      const formData = new FormData();
+      formData.append('phonenumber', testPhone);
+      formData.append('text', 'Hello! This is a test message from IPTV Admin Portal. Your WhatsApp API is configured correctly! 🎉');
+
+      const response = await fetch('https://api.360messenger.com/v2/sendMessage', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+        },
+        body: formData,
       });
-    }, 1500);
+
+      if (response.ok) {
+        toast({
+          title: 'Test Message Sent',
+          description: `Test message sent successfully to ${testPhone}`,
+        });
+      } else {
+        const errorText = await response.text();
+        toast({
+          title: 'Error',
+          description: `Failed to send message: ${errorText}`,
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to send test message. Check your connection.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

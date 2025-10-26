@@ -16,16 +16,35 @@ const SendMessage = () => {
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const apiKey = localStorage.getItem('whatsapp_api_key');
+    if (!apiKey) {
+      toast({
+        title: 'Error',
+        description: 'Please configure WhatsApp API key first in Settings',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setIsSending(true);
 
     try {
-      await sendWhatsAppMessage(phoneNumber, message);
-      toast({
-        title: 'Message sent',
-        description: `WhatsApp message sent to ${phoneNumber}`,
-      });
-      setPhoneNumber('');
-      setMessage('');
+      const success = await sendWhatsAppMessage(phoneNumber, message);
+      if (success) {
+        toast({
+          title: 'Message sent',
+          description: `WhatsApp message sent to ${phoneNumber}`,
+        });
+        setPhoneNumber('');
+        setMessage('');
+      } else {
+        toast({
+          title: 'Error',
+          description: 'Failed to send message. Check API key and try again.',
+          variant: 'destructive',
+        });
+      }
     } catch (error) {
       toast({
         title: 'Error',

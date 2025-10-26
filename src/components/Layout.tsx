@@ -14,12 +14,12 @@ const Layout = () => {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden">
-      <aside className="w-64 hidden lg:block">
+    <div className="flex h-screen overflow-hidden w-full">
+      <aside className="w-64 hidden lg:block border-r border-border">
         <Sidebar />
       </aside>
       <main className="flex-1 overflow-y-auto">
-        <div className="lg:hidden sticky top-0 z-10 bg-background border-b border-border px-4 py-3">
+        <div className="lg:hidden sticky top-0 z-10 bg-background border-b border-border px-4 py-3 flex items-center">
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon">
@@ -31,7 +31,7 @@ const Layout = () => {
             </SheetContent>
           </Sheet>
         </div>
-        <div className="container mx-auto p-6 max-w-7xl">
+        <div className="p-6">
           <Outlet />
         </div>
       </main>
