@@ -11,6 +11,7 @@ import Dashboard from "./pages/Dashboard";
 import Clients from "./pages/Clients";
 import Hosts from "./pages/Hosts";
 import Templates from "./pages/Templates";
+import WhatsAppAPI from "./pages/WhatsAppAPI";
 import SendMessage from "./pages/SendMessage";
 import Layout from "./components/Layout";
 import NotFound from "./pages/NotFound";
@@ -36,6 +37,7 @@ const App = () => {
                 <Route path="/clients" element={<Clients />} />
                 <Route path="/hosts" element={<Hosts />} />
                 <Route path="/templates" element={<Templates />} />
+                <Route path="/whatsapp-api" element={<WhatsAppAPI />} />
                 <Route path="/send-message" element={<SendMessage />} />
               </Route>
               <Route path="*" element={<NotFound />} />

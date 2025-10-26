@@ -9,7 +9,8 @@ import {
   LogOut,
   Monitor,
   Moon,
-  Sun
+  Sun,
+  Settings
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -21,7 +22,8 @@ const navItems = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/clients', icon: Users, label: 'Clients' },
   { to: '/hosts', icon: Server, label: 'Host URLs' },
-  { to: '/templates', icon: MessageSquare, label: 'WhatsApp Templates' },
+  { to: '/templates', icon: MessageSquare, label: 'Templates' },
+  { to: '/whatsapp-api', icon: Settings, label: 'WhatsApp API' },
   { to: '/send-message', icon: Send, label: 'Send Message' },
 ];
 
