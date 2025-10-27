@@ -32,7 +32,7 @@ const HostModal = ({ open, onOpenChange, host, onSuccess }: HostModalProps) => {
     }
   }, [host, open]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     const newHost: HostUrl = {
@@ -42,19 +42,26 @@ const HostModal = ({ open, onOpenChange, host, onSuccess }: HostModalProps) => {
       isActive,
     };
 
-    const hosts = storage.getHostUrls();
-    const updatedHosts = host
-      ? hosts.map(h => h.id === host.id ? newHost : h)
-      : [...hosts, newHost];
-    
-    storage.saveHostUrls(updatedHosts);
+    try {
+      if (host) {
+        await storage.updateHostUrl(newHost);
+      } else {
+        await storage.createHostUrl(newHost);
+      }
 
-    toast({
-      title: host ? 'Host URL updated' : 'Host URL added',
-    });
+      toast({
+        title: host ? 'Host URL updated' : 'Host URL added',
+      });
 
-    onSuccess();
-    onOpenChange(false);
+      onSuccess();
+      onOpenChange(false);
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to save host URL',
+        variant: 'destructive',
+      });
+    }
   };
 
   return (

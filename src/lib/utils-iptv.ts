@@ -43,7 +43,8 @@ export const fillTemplate = (template: string, client: Client): string => {
 // WhatsApp API send function using 360Messenger
 export const sendWhatsAppMessage = async (phoneNumber: string, message: string): Promise<boolean> => {
   try {
-    const apiKey = localStorage.getItem('whatsapp_api_key');
+    const { storage } = await import('./storage');
+    const apiKey = await storage.getSetting('whatsapp_api_key');
     
     if (!apiKey) {
       console.warn('WhatsApp API key not configured');

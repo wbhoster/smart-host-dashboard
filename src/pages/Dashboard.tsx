@@ -18,19 +18,23 @@ const Dashboard = () => {
   const [recentClients, setRecentClients] = useState<Client[]>([]);
 
   useEffect(() => {
-    const clients = storage.getClients();
-    const total = clients.length;
-    const active = clients.filter(c => getClientStatus(c.expiryDate) === 'active').length;
-    const expired = clients.filter(c => getClientStatus(c.expiryDate) === 'expired').length;
-    const expiringSoon = clients.filter(c => getClientStatus(c.expiryDate) === 'expiring-soon').length;
+    const loadDashboardData = async () => {
+      const clients = await storage.getClients();
+      const total = clients.length;
+      const active = clients.filter(c => getClientStatus(c.expiryDate) === 'active').length;
+      const expired = clients.filter(c => getClientStatus(c.expiryDate) === 'expired').length;
+      const expiringSoon = clients.filter(c => getClientStatus(c.expiryDate) === 'expiring-soon').length;
 
-    setStats({ total, active, expired, expiringSoon });
+      setStats({ total, active, expired, expiringSoon });
+      
+      // Get latest 5 clients sorted by creation date
+      const sortedClients = [...clients].sort((a, b) => 
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      ).slice(0, 5);
+      setRecentClients(sortedClients);
+    };
     
-    // Get latest 5 clients sorted by creation date
-    const sortedClients = [...clients].sort((a, b) => 
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    ).slice(0, 5);
-    setRecentClients(sortedClients);
+    loadDashboardData();
   }, []);
 
   const statCards = [

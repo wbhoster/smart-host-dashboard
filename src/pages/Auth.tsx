@@ -14,12 +14,12 @@ const Auth = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Demo credentials: admin / admin123
-    if (username === 'admin' && password === 'admin123') {
-      storage.setAuthenticated(true);
+    const success = await storage.login(username, password);
+    
+    if (success) {
       toast({
         title: 'Login successful',
         description: 'Welcome to IPTV Admin Portal',

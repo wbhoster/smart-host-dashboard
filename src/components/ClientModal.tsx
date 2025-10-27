@@ -76,16 +76,15 @@ const ClientModal = ({ open, onOpenChange, client, hostUrls, onSuccess, isEditMo
         whatsappNumber,
       };
 
-      const clients = storage.getClients();
-      const updatedClients = client
-        ? clients.map(c => c.id === client.id ? newClient : c)
-        : [...clients, newClient];
-      
-      storage.saveClients(updatedClients);
+      if (client) {
+        await storage.updateClient(newClient);
+      } else {
+        await storage.createClient(newClient);
+      }
 
       // Send WhatsApp message only for new or renewed clients, not edits
       if (!isEditMode) {
-        const templates = storage.getTemplates();
+        const templates = await storage.getTemplates();
         const template = templates.find(t => t.type === (client ? 'renewal' : 'welcome'));
         if (template) {
           const message = fillTemplate(template.message, newClient);

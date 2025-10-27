@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
+import { storage } from '@/lib/storage';
 import { Save, Send, ExternalLink } from 'lucide-react';
 
 const WhatsAppAPI = () => {
@@ -13,11 +14,14 @@ const WhatsAppAPI = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    const saved = localStorage.getItem('whatsapp_api_key');
-    if (saved) setApiKey(saved);
+    const loadApiKey = async () => {
+      const saved = await storage.getSetting('whatsapp_api_key');
+      if (saved) setApiKey(saved);
+    };
+    loadApiKey();
   }, []);
 
-  const handleSaveApiKey = () => {
+  const handleSaveApiKey = async () => {
     if (!apiKey.trim()) {
       toast({
         title: 'Error',
@@ -27,11 +31,19 @@ const WhatsAppAPI = () => {
       return;
     }
 
-    localStorage.setItem('whatsapp_api_key', apiKey);
-    toast({
-      title: 'API Key Saved',
-      description: 'Your 360Messenger API key has been saved successfully',
-    });
+    try {
+      await storage.saveSetting('whatsapp_api_key', apiKey);
+      toast({
+        title: 'API Key Saved',
+        description: 'Your 360Messenger API key has been saved successfully',
+      });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to save API key',
+        variant: 'destructive',
+      });
+    }
   };
 
   const handleTestMessage = async () => {

@@ -19,15 +19,19 @@ const Hosts = () => {
     loadHosts();
   }, []);
 
-  const loadHosts = () => {
-    setHosts(storage.getHostUrls());
+  const loadHosts = async () => {
+    const hostsData = await storage.getHostUrls();
+    setHosts(hostsData);
   };
 
-  const handleDelete = (id: string) => {
-    const updatedHosts = hosts.filter(h => h.id !== id);
-    storage.saveHostUrls(updatedHosts);
-    setHosts(updatedHosts);
-    toast({ title: 'Host URL deleted successfully' });
+  const handleDelete = async (id: string) => {
+    try {
+      await storage.deleteHostUrl(id);
+      await loadHosts();
+      toast({ title: 'Host URL deleted successfully' });
+    } catch (error) {
+      toast({ title: 'Error deleting host URL', variant: 'destructive' });
+    }
   };
 
   const handleEdit = (host: HostUrl) => {

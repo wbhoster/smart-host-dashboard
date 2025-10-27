@@ -1,4 +1,6 @@
-// Local storage utilities for simulating backend
+import { API_BASE_URL } from '@/config';
+
+// API utilities for MySQL backend
 export interface Client {
   id: string;
   fullName: string;
@@ -27,72 +29,118 @@ export interface WhatsAppTemplate {
 }
 
 const STORAGE_KEYS = {
-  CLIENTS: 'iptv_clients',
-  HOST_URLS: 'iptv_host_urls',
-  TEMPLATES: 'iptv_whatsapp_templates',
   ADMIN_AUTH: 'iptv_admin_auth',
 };
 
-// Initialize default templates
-const DEFAULT_TEMPLATES: WhatsAppTemplate[] = [
-  {
-    id: 'welcome',
-    type: 'welcome',
-    name: 'Welcome Message',
-    message: '🎉 Welcome to IPTV Service, {fullName}!\n\n👤 Username: {username}\n🔑 Password: {password}\n🌐 Host URL: {hostUrl}\n📅 Valid Until: {expiryDate}\n\n✨ Enjoy unlimited entertainment!',
-  },
-  {
-    id: 'pre-expiry',
-    type: 'pre-expiry',
-    name: 'Pre-Expiry Reminder',
-    message: '⏰ Reminder {fullName}: Your IPTV subscription expires in 7 days!\n\n📅 Expiry Date: {expiryDate}\n\n💬 Contact us to renew your subscription.',
-  },
-  {
-    id: 'expiry',
-    type: 'expiry',
-    name: 'Expiry Day Message',
-    message: '⚠️ Hi {fullName}, your IPTV subscription has expired today.\n\n📅 Expired: {expiryDate}\n\n💬 Renew now to continue enjoying our service!',
-  },
-  {
-    id: 'renewal',
-    type: 'renewal',
-    name: 'Renewal Confirmation',
-    message: '✅ Hi {fullName}! Subscription renewed successfully!\n\n📅 New Expiry Date: {expiryDate}\n\n🎉 Thank you for continuing with us!',
-  },
-];
-
 export const storage = {
-  // Clients
-  getClients: (): Client[] => {
-    const data = localStorage.getItem(STORAGE_KEYS.CLIENTS);
-    return data ? JSON.parse(data) : [];
+  // Clients - API calls
+  getClients: async (): Promise<Client[]> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/clients`);
+      if (!response.ok) throw new Error('Failed to fetch clients');
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching clients:', error);
+      return [];
+    }
   },
   
-  saveClients: (clients: Client[]) => {
-    localStorage.setItem(STORAGE_KEYS.CLIENTS, JSON.stringify(clients));
+  saveClients: async (clients: Client[]): Promise<void> => {
+    // Note: This is not used anymore, we use individual create/update/delete
+    console.warn('saveClients is deprecated, use individual client operations');
+  },
+
+  createClient: async (client: Client): Promise<void> => {
+    const response = await fetch(`${API_BASE_URL}/clients`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(client),
+    });
+    if (!response.ok) throw new Error('Failed to create client');
+  },
+
+  updateClient: async (client: Client): Promise<void> => {
+    const response = await fetch(`${API_BASE_URL}/clients/${client.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(client),
+    });
+    if (!response.ok) throw new Error('Failed to update client');
+  },
+
+  deleteClient: async (id: string): Promise<void> => {
+    const response = await fetch(`${API_BASE_URL}/clients/${id}`, {
+      method: 'DELETE',
+    });
+    if (!response.ok) throw new Error('Failed to delete client');
   },
   
-  // Host URLs
-  getHostUrls: (): HostUrl[] => {
-    const data = localStorage.getItem(STORAGE_KEYS.HOST_URLS);
-    return data ? JSON.parse(data) : [];
+  // Host URLs - API calls
+  getHostUrls: async (): Promise<HostUrl[]> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/hosts`);
+      if (!response.ok) throw new Error('Failed to fetch host URLs');
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching host URLs:', error);
+      return [];
+    }
   },
   
-  saveHostUrls: (urls: HostUrl[]) => {
-    localStorage.setItem(STORAGE_KEYS.HOST_URLS, JSON.stringify(urls));
+  saveHostUrls: async (urls: HostUrl[]): Promise<void> => {
+    // Note: This is not used anymore, we use individual create/update/delete
+    console.warn('saveHostUrls is deprecated, use individual host operations');
+  },
+
+  createHostUrl: async (host: HostUrl): Promise<void> => {
+    const response = await fetch(`${API_BASE_URL}/hosts`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(host),
+    });
+    if (!response.ok) throw new Error('Failed to create host URL');
+  },
+
+  updateHostUrl: async (host: HostUrl): Promise<void> => {
+    const response = await fetch(`${API_BASE_URL}/hosts/${host.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(host),
+    });
+    if (!response.ok) throw new Error('Failed to update host URL');
+  },
+
+  deleteHostUrl: async (id: string): Promise<void> => {
+    const response = await fetch(`${API_BASE_URL}/hosts/${id}`, {
+      method: 'DELETE',
+    });
+    if (!response.ok) throw new Error('Failed to delete host URL');
   },
   
-  // Templates
-  getTemplates: (): WhatsAppTemplate[] => {
-    const data = localStorage.getItem(STORAGE_KEYS.TEMPLATES);
-    return data ? JSON.parse(data) : DEFAULT_TEMPLATES;
+  // Templates - API calls
+  getTemplates: async (): Promise<WhatsAppTemplate[]> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/templates`);
+      if (!response.ok) throw new Error('Failed to fetch templates');
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching templates:', error);
+      return [];
+    }
   },
   
-  saveTemplates: (templates: WhatsAppTemplate[]) => {
-    localStorage.setItem(STORAGE_KEYS.TEMPLATES, JSON.stringify(templates));
+  saveTemplates: async (templates: WhatsAppTemplate[]): Promise<void> => {
+    for (const template of templates) {
+      const response = await fetch(`${API_BASE_URL}/templates/${template.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: template.message }),
+      });
+      if (!response.ok) throw new Error(`Failed to update template ${template.id}`);
+    }
   },
   
-  // Admin Auth
+  // Admin Auth - Still using localStorage for session
   isAuthenticated: (): boolean => {
     return localStorage.getItem(STORAGE_KEYS.ADMIN_AUTH) === 'true';
   },
@@ -100,11 +148,50 @@ export const storage = {
   setAuthenticated: (value: boolean) => {
     localStorage.setItem(STORAGE_KEYS.ADMIN_AUTH, value ? 'true' : 'false');
   },
-  
-  // Initialize storage with defaults
-  initialize: () => {
-    if (!localStorage.getItem(STORAGE_KEYS.TEMPLATES)) {
-      storage.saveTemplates(DEFAULT_TEMPLATES);
+
+  login: async (username: string, password: string): Promise<boolean> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      });
+      
+      if (response.ok) {
+        storage.setAuthenticated(true);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Login error:', error);
+      return false;
     }
+  },
+
+  // Settings - API calls
+  getSetting: async (key: string): Promise<string | null> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/settings/${key}`);
+      if (!response.ok) return null;
+      const data = await response.json();
+      return data.value;
+    } catch (error) {
+      console.error('Error fetching setting:', error);
+      return null;
+    }
+  },
+
+  saveSetting: async (key: string, value: string): Promise<void> => {
+    const response = await fetch(`${API_BASE_URL}/settings/${key}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ value }),
+    });
+    if (!response.ok) throw new Error('Failed to save setting');
+  },
+  
+  // Initialize storage
+  initialize: () => {
+    // No longer needed as database is initialized via schema.sql
   },
 };

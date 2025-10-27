@@ -29,16 +29,21 @@ const Clients = () => {
     loadData();
   }, []);
 
-  const loadData = () => {
-    setClients(storage.getClients());
-    setHostUrls(storage.getHostUrls());
+  const loadData = async () => {
+    const clientsData = await storage.getClients();
+    const hostsData = await storage.getHostUrls();
+    setClients(clientsData);
+    setHostUrls(hostsData);
   };
 
-  const handleDelete = (id: string) => {
-    const updatedClients = clients.filter(c => c.id !== id);
-    storage.saveClients(updatedClients);
-    setClients(updatedClients);
-    toast({ title: 'Client deleted successfully' });
+  const handleDelete = async (id: string) => {
+    try {
+      await storage.deleteClient(id);
+      await loadData();
+      toast({ title: 'Client deleted successfully' });
+    } catch (error) {
+      toast({ title: 'Error deleting client', variant: 'destructive' });
+    }
   };
 
   const handleRenew = (client: Client) => {

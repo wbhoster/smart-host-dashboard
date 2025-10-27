@@ -18,7 +18,11 @@ const Templates = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    setTemplates(storage.getTemplates());
+    const loadTemplates = async () => {
+      const templatesData = await storage.getTemplates();
+      setTemplates(templatesData);
+    };
+    loadTemplates();
   }, []);
 
   const handleUpdate = (id: string, message: string) => {
@@ -26,12 +30,19 @@ const Templates = () => {
     setTemplates(updated);
   };
 
-  const handleSave = () => {
-    storage.saveTemplates(templates);
-    toast({
-      title: 'Templates saved',
-      description: 'WhatsApp message templates updated successfully',
-    });
+  const handleSave = async () => {
+    try {
+      await storage.saveTemplates(templates);
+      toast({
+        title: 'Templates saved',
+        description: 'WhatsApp message templates updated successfully',
+      });
+    } catch (error) {
+      toast({
+        title: 'Error saving templates',
+        variant: 'destructive',
+      });
+    }
   };
 
   const handleEmojiClick = (emojiData: EmojiClickData, templateId: string) => {
