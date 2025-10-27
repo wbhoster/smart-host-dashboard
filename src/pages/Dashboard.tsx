@@ -26,10 +26,10 @@ const Dashboard = () => {
 
     setStats({ total, active, expired, expiringSoon });
     
-    // Get latest 10 clients sorted by creation date
+    // Get latest 5 clients sorted by creation date
     const sortedClients = [...clients].sort((a, b) => 
       new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    ).slice(0, 10);
+    ).slice(0, 5);
     setRecentClients(sortedClients);
   }, []);
 
@@ -108,7 +108,7 @@ const Dashboard = () => {
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
             <CardTitle>Recent Clients</CardTitle>
-            <p className="text-sm text-muted-foreground mt-1">Latest 10 registered clients</p>
+            <p className="text-sm text-muted-foreground mt-1">Latest 5 registered clients</p>
           </div>
           <Button onClick={() => navigate('/clients')}>View All</Button>
         </CardHeader>

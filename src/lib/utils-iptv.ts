@@ -7,8 +7,8 @@ export const generateCredentials = () => {
   };
   
   return {
-    username: generateNumeric(10),
-    password: generateNumeric(12),
+    username: generateNumeric(8),
+    password: generateNumeric(8),
   };
 };
 
@@ -33,6 +33,7 @@ export const getClientStatus = (expiryDate: string): 'active' | 'expired' | 'exp
 // Replace template variables with actual values
 export const fillTemplate = (template: string, client: Client): string => {
   return template
+    .replace(/{fullName}/g, client.fullName)
     .replace(/{username}/g, client.username)
     .replace(/{password}/g, client.password)
     .replace(/{hostUrl}/g, client.hostUrl)
