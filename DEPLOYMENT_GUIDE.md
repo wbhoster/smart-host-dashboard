@@ -52,14 +52,16 @@
 ### 2.1 Upload Backend Files
 
 1. **Using cPanel File Manager or FTP:**
-   - Create a folder: `/home/your_username/iptv-backend/`
+   - Create a folder: `/home/your_username/iptv-api/`
    - Upload all files from the `backend/` folder to this directory
 
 2. **File structure should look like:**
    ```
-   /home/your_username/iptv-backend/
+   /home/your_username/iptv-api/
+   ├── app.js (Passenger entry point)
    ├── server.js
    ├── package.json
+   ├── .htaccess
    ├── routes/
    │   ├── auth.js
    │   ├── clients.js
@@ -72,9 +74,9 @@
 
 ### 2.2 Configure Environment Variables
 
-1. **Create `.env` file** in `/home/your_username/iptv-backend/`:
+1. **Create `.env` file** in `/home/your_username/iptv-api/`:
    ```bash
-   PORT=3001
+   NODE_ENV=production
    DB_HOST=localhost
    DB_USER=your_cpanel_username_iptv_user
    DB_PASSWORD=your_database_password
@@ -83,68 +85,71 @@
 
 2. **Important:** Replace with your actual database credentials from Step 1.1
 
-### 2.3 Install Backend Dependencies
+3. **Note:** No PORT variable needed - Passenger manages this automatically
 
-**Via SSH (Recommended):**
+### 2.3 Setup Node.js Application in cPanel
+
+**Using cPanel Node.js Selector (Recommended):**
+
+1. **Login to cPanel**
+2. **Go to "Setup Node.js App"**
+3. **Click "Create Application"**
+4. **Configure the application:**
+   - **Node.js version:** Select latest LTS (16.x or higher)
+   - **Application mode:** Production
+   - **Application root:** `iptv-api`
+   - **Application URL:** `iptv-api` (this creates the endpoint at yourdomain.com/iptv-api)
+   - **Application startup file:** `app.js`
+   - **Passenger log file:** (leave default or specify custom path)
+   
+5. **Click "Create"**
+6. **Click "Run NPM Install"** - Wait for installation to complete
+7. **Click "Restart"** to start the application
+
+**Via SSH (Alternative):**
 ```bash
-cd /home/your_username/iptv-backend
+cd /home/your_username/iptv-api
 npm install
 ```
 
-**Via cPanel Node.js Selector:**
-1. Go to "Setup Node.js App" in cPanel
-2. Click "Create Application"
-3. Set Application Root: `iptv-backend`
-4. Set Application URL: Leave empty (backend only)
-5. Application Startup File: `server.js`
-6. Click "Create"
-7. Click "Run NPM Install"
+### 2.4 Verify Backend Application
 
-### 2.4 Start Backend Server
+1. **In Node.js Selector, verify:**
+   - Status shows "Running"
+   - No errors in the log viewer
+   
+2. **Important Notes:**
+   - Passenger automatically manages the application lifecycle
+   - No need for PM2, Forever, or manual process management
+   - Application auto-restarts on server reboot
+   - Application auto-restarts on crashes
 
-**Option A: Using Node.js Selector (Recommended for cPanel)**
-1. In "Setup Node.js App", click your application
-2. Click "Start Application"
-3. Verify it's running on port 3001
-
-**Option B: Using PM2 (via SSH)**
-```bash
-npm install -g pm2
-cd /home/your_username/iptv-backend
-pm2 start server.js --name iptv-backend
-pm2 save
-pm2 startup
-```
-
-**Option C: Using Forever (via SSH)**
-```bash
-npm install -g forever
-cd /home/your_username/iptv-backend
-forever start server.js
-```
-
-### 2.5 Verify Backend is Running
+### 2.5 Test Backend API
 
 **Test the health endpoint:**
 ```bash
-curl http://localhost:3001/api/health
+curl https://yourdomain.com/iptv-api/api/health
 ```
 
 You should see: `{"status":"OK","timestamp":"..."}`
+
+**Or visit in browser:**
+`https://yourdomain.com/iptv-api/api/health`
 
 ---
 
 ## Part 3: Frontend Setup
 
-### 3.1 Update Frontend API URL
+### 3.1 Verify Frontend API URL
 
-Before building, update the API base URL:
+The `src/config.ts` file is already configured correctly:
+```typescript
+export const API_BASE_URL = import.meta.env.PROD 
+  ? '/api'  // In production, proxied via .htaccess
+  : 'http://localhost:3001/api';
+```
 
-1. **Create/Update `src/config.ts`:**
-   ```typescript
-   export const API_BASE_URL = 'https://yourdomain.com/api';
-   // Or if using subdomain: 'https://api.yourdomain.com/api'
-   ```
+No changes needed - the production build will automatically use `/api` which gets proxied to `/iptv-api` by Apache.
 
 ### 3.2 Build Frontend
 
@@ -174,28 +179,17 @@ This creates a `dist/` folder with your production files.
    └── robots.txt
    ```
 
-### 3.4 Configure React Router
+### 3.4 Configure Apache (.htaccess)
 
-**Create `.htaccess` in `public_html/`:**
-```apache
-<IfModule mod_rewrite.c>
-  RewriteEngine On
-  RewriteBase /
-  
-  # Proxy API requests to Node.js backend
-  RewriteCond %{REQUEST_URI} ^/api/
-  RewriteRule ^api/(.*)$ http://localhost:3001/api/$1 [P,L]
-  
-  # Serve existing files/directories
-  RewriteCond %{REQUEST_FILENAME} !-f
-  RewriteCond %{REQUEST_FILENAME} !-d
-  
-  # Route all other requests to index.html
-  RewriteRule . /index.html [L]
-</IfModule>
-```
+**The `.htaccess` file should already be in `public/` folder. Copy it to `public_html/` during deployment.**
 
-**Note:** If you get a 500 error, you may need to enable `mod_proxy` in Apache. Contact your hosting provider.
+The `.htaccess` configuration includes:
+- API proxy to `/iptv-api` (your Passenger Node.js app)
+- React Router support (SPA routing)
+- Gzip compression
+- Browser caching
+
+**No modifications needed** - just ensure the file is copied to `public_html/` with your build files.
 
 ---
 
@@ -227,7 +221,10 @@ This creates a `dist/` folder with your production files.
 ### 5.1 Test Backend API
 
 ```bash
-# Test health endpoint
+# Test health endpoint directly
+curl https://yourdomain.com/iptv-api/api/health
+
+# Test via proxy (as frontend uses it)
 curl https://yourdomain.com/api/health
 
 # Test getting clients
@@ -309,22 +306,29 @@ mkdir /home/your_username/iptv-backend/logs
 ## Troubleshooting
 
 ### Backend Not Starting
-```bash
-# Check Node.js version (should be 14+)
-node --version
+1. **Check Node.js Selector in cPanel:**
+   - Verify app status is "Running"
+   - Check the log viewer for errors
+   
+2. **Check Node.js version:**
+   ```bash
+   node --version  # Should be 16.x or higher
+   ```
 
-# Check logs
-tail -f /home/your_username/iptv-backend/logs/*.log
+3. **Check Passenger logs:**
+   - In Node.js Selector, click "Log" button
+   - Or via SSH: `tail -f /home/your_username/iptv-api/passenger.log`
 
-# Check if port 3001 is in use
-netstat -tuln | grep 3001
-```
+4. **Restart the application:**
+   - In Node.js Selector, click "Restart"
 
 ### API Requests Failing
-1. **Check `.htaccess` proxy rules are correct**
-2. **Verify backend is running:** `curl http://localhost:3001/api/health`
-3. **Check browser console for CORS errors**
-4. **Verify API_BASE_URL in frontend config**
+1. **Check `.htaccess` proxy rules in `public_html/`**
+2. **Verify backend is running:**
+   - Check Node.js Selector status
+   - Test: `curl https://yourdomain.com/iptv-api/api/health`
+3. **Check browser console for errors**
+4. **Verify API URL proxying:** `/api/*` should route to `/iptv-api/*`
 
 ### Database Connection Errors
 1. **Verify credentials in `.env`**
@@ -390,12 +394,13 @@ Add to `.htaccess` in `public_html/`:
 
 **Important Paths:**
 - Frontend: `/home/username/public_html/`
-- Backend: `/home/username/iptv-backend/`
-- Logs: `/home/username/iptv-backend/logs/`
+- Backend: `/home/username/iptv-api/`
+- Logs: Check in Node.js Selector or `/home/username/iptv-api/`
 
 **Important URLs:**
 - Frontend: `https://yourdomain.com`
-- API: `https://yourdomain.com/api`
+- API (proxied): `https://yourdomain.com/api/*`
+- API (direct): `https://yourdomain.com/iptv-api/api/*`
 - Health Check: `https://yourdomain.com/api/health`
 
 ---

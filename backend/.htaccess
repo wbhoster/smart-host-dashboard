@@ -1,13 +1,1 @@
-RewriteEngine On
-RewriteBase /
-
-# Proxy API requests to Node.js backend
-RewriteCond %{REQUEST_URI} ^/api/
-RewriteRule ^api/(.*)$ http://localhost:3001/api/$1 [P,L]
-
-# If the request is for a file or directory that exists, serve it
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
-
-# Otherwise, redirect to index.html for React Router
-RewriteRule . /index.html [L]
+PassengerEnabled off
