@@ -1,20 +1,20 @@
 # Complete cPanel Deployment Guide for IPTV Admin App
 
-This guide shows you how to deploy your React + Node.js + MySQL app on cPanel hosting with full flexibility for folder locations and domains.
+This guide shows you how to deploy your React + PHP + MySQL app on cPanel hosting with full flexibility for folder locations and domains.
 
 ## Architecture Overview
 
 ```
-Frontend (React)          →  Apache/.htaccess  →  Passenger  →  Backend (Node.js)  →  MySQL
-public_html/yourdomain/      Routes /api/*                      Any folder            Database
+Frontend (React)          →  Apache/.htaccess  →  Backend (PHP)  →  MySQL
+public_html/yourdomain/      Routes /api/*         Any folder       Database
 ```
 
 ## Prerequisites
 
 - cPanel hosting with:
+  - PHP 7.4 or higher (usually pre-installed)
   - MySQL database access
-  - Node.js Selector (Passenger support)
-  - SSH access (recommended) or File Manager
+  - File Manager or FTP access
   - Your domain configured in cPanel
 
 ---
@@ -42,88 +42,110 @@ public_html/yourdomain/      Routes /api/*                      Any folder      
 
 ## Step 2: Backend Setup
 
-### 2.1 Upload Backend Files
+### 2.1 Choose Backend Location
 
-Choose any folder name you want (flexible):
+You can place the backend in ANY folder outside `public_html/`:
+
+**Recommended locations:**
+- `/home/yourusername/api/` (simple and clear)
+- `/home/yourusername/backend/` (descriptive)
+- `/home/yourusername/private/api/` (more secure)
+
+For this guide, we'll use `/home/yourusername/api/`
+
+### 2.2 Upload Backend Files
 
 **Via File Manager:**
-1. Go to cPanel → File Manager
+1. Go to **cPanel → File Manager**
 2. Navigate to `/home/yourusername/`
-3. Create folder: `api` (or any name you prefer)
-4. Upload ALL files from `backend/` folder:
-   - `server.js`
-   - `app.js`
-   - `package.json`
+3. Click **+ Folder** → Create folder: `api`
+4. Enter the `api` folder
+5. Upload ALL files from your local `backend/` folder:
+   - `index.php`
    - `.htaccess`
-   - `routes/` folder
+   - `config/` folder (containing `database.php`)
+   - `api/` folder (containing all route files)
    - **DO NOT** upload `.env.example`
 
-**Via SSH/FTP:**
-```bash
-# Upload to any folder you want
-/home/yourusername/api/
-```
+**Via FTP:**
+Upload the entire `backend/` contents to `/home/yourusername/api/`
 
-### 2.2 Configure Environment Variables
+### 2.3 Create .env Configuration File
 
-Create `.env` file in your backend folder (`/home/yourusername/api/.env`):
+In your backend folder (`/home/yourusername/api/`), create a new file named `.env`:
+
+1. Click **+ File** → Name it `.env`
+2. Right-click the file → **Edit**
+3. Add your database credentials:
 
 ```env
-NODE_ENV=production
 DB_HOST=localhost
 DB_USER=yourdb_user
 DB_PASSWORD=your_strong_password
 DB_NAME=yourdb_iptv
 ```
 
-**⚠️ Security:** Make sure `.env` has permissions `600` or `644` and is NOT publicly accessible.
+4. **Save** and **Close**
+5. Right-click `.env` → **Permissions** → Set to `600` or `644`
 
-### 2.3 Set Up Node.js Application (cPanel Node.js Selector)
+**⚠️ CRITICAL:** The `.htaccess` file already denies access to `.env` from browsers. Verify it's not publicly accessible:
+- Try opening: `https://yourdomain.com/api/.env` (should show 403 Forbidden)
 
-This is the CRITICAL step that makes everything work:
+### 2.4 Configure Apache to Route /api/ Requests
 
-1. **cPanel → Setup Node.js App** (or "Node.js Selector")
-2. Click **Create Application**
-3. Configure:
-   - **Node.js Version**: 18.x or higher (recommended)
-   - **Application Mode**: Production
-   - **Application Root**: `/home/yourusername/api` (your backend folder path)
-   - **Application URL**: `/api` (this tells Passenger to serve your backend at yourdomain.com/api/)
-   - **Application Startup File**: `app.js`
-   - **Domain**: Select your domain (e.g., `panel.a1hoster.pk`)
-4. Click **Create**
+Edit your **public_html** `.htaccess` to add API routing:
 
-### 2.4 Install Dependencies
+1. Go to `/home/yourusername/public_html/panel.a1hoster.pk/`
+2. Open `.htaccess` file
+3. Make sure it contains these rules (should already exist from frontend setup):
 
-After creating the app, cPanel shows you a command to run. Copy it:
-
-**Option A: Via cPanel Terminal/SSH:**
-```bash
-cd /home/yourusername/api
-source /home/yourusername/nodevenv/api/18/bin/activate
-npm install
+```apache
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+  
+  # Route /api/ requests to backend folder
+  RewriteCond %{REQUEST_URI} ^/api/
+  RewriteRule ^api/(.*)$ /home/yourusername/api/index.php [L]
+  
+  # Serve existing files/directories directly
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  
+  # Route all other requests to index.html (React Router)
+  RewriteRule . /index.html [L]
+</IfModule>
 ```
 
-**Option B: Via cPanel Node.js Selector:**
-- Click "Run NPM Install" button in the app settings
+**📝 Note:** Replace `/home/yourusername/api/` with your actual backend path if different.
 
-### 2.5 Start the Application
+### 2.5 Verify PHP Version
 
-- In Node.js Selector, click **Start** or **Restart** button
-- The app should show status: **Running**
+1. **cPanel → MultiPHP Manager** or **Select PHP Version**
+2. Ensure your domain is using **PHP 7.4 or higher**
+3. Enable required PHP extensions (usually already enabled):
+   - `pdo`
+   - `pdo_mysql`
+   - `json`
 
-### 2.6 Test Backend
+### 2.6 Test Backend API
 
-Test the API directly:
+Open your browser or use curl to test:
 
 ```bash
 # Health check
-curl https://yourdomain.com/api/health
+curl https://panel.a1hoster.pk/api/health
 
-# Should return: {"status":"OK","timestamp":"2024-..."}
+# Expected response:
+{"status":"OK","timestamp":"2025-10-28T..."}
 ```
 
-If you get HTML instead of JSON, the routing isn't working - check Step 2.3 configuration.
+If you see JSON response, your backend is working! ✅
+
+**Common issues:**
+- **404 Error**: Check `.htaccess` RewriteRule path is correct
+- **500 Error**: Check `.env` database credentials
+- **HTML instead of JSON**: Verify PHP files are uploaded correctly
 
 ---
 
@@ -221,13 +243,19 @@ RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
 ### 5.1 Test Backend API
 
+Open browser or use curl:
+
 ```bash
+# Health check
 curl https://panel.a1hoster.pk/api/health
 # Expected: {"status":"OK","timestamp":"..."}
 
+# Get clients (should be empty initially)
 curl https://panel.a1hoster.pk/api/clients
-# Expected: [] or client data
+# Expected: []
 ```
+
+If you get JSON responses, your backend is working correctly! ✅
 
 ### 5.2 Test Frontend
 
@@ -280,11 +308,20 @@ chmod 600 /home/yourusername/api/.env
 Verify it's NOT accessible via browser:
 `https://yourdomain.com/api/.env` should return 404/403
 
-### 6.3 Enable Error Logging
+### 6.3 Enable PHP Error Logging
 
-Backend logs are in:
-- cPanel → Node.js Selector → Click app → View logs
-- Or SSH: `tail -f ~/nodevenv/api/18/logs/passenger.log`
+PHP errors are logged in:
+- cPanel → Errors (in the Metrics section)
+- Or check: `/home/yourusername/public_html/error_log`
+
+To enable detailed errors during development (disable in production):
+Add to `/home/yourusername/api/index.php` at the top:
+```php
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+```
+
+**⚠️ Remove** these lines after fixing issues!
 
 ### 6.4 Database Backups
 
@@ -300,19 +337,21 @@ Backend logs are in:
 **Cause:** Frontend is getting HTML instead of JSON from API
 
 **Fix:**
-1. Check Node.js app is **Running** in cPanel Node.js Selector
-2. Verify Application URL is set to `/api` exactly
+1. Verify backend files are uploaded to correct folder
+2. Check `.htaccess` RewriteRule in public_html points to correct backend path
 3. Test API directly: `curl https://yourdomain.com/api/health`
-4. Check `.htaccess` in public_html has correct rewrite rules
+4. Check if PHP is enabled for your domain (cPanel → MultiPHP Manager)
+5. Verify `.htaccess` in backend folder has correct routing rules
 
 ### Problem: 404 on API calls
 
-**Cause:** Passenger not routing to backend
+**Cause:** Apache not routing to PHP backend
 
 **Fix:**
-1. Verify Node.js app Domain matches your actual domain
-2. Restart Node.js app in cPanel
-3. Check Application URL is `/api` (not `/iptv-api` or anything else)
+1. Check public_html `.htaccess` RewriteRule path matches your backend location
+2. Verify backend folder path: `/home/yourusername/api/index.php` exists
+3. Test: `https://yourdomain.com/api/health` should return JSON
+4. Check PHP version is 7.4+ in cPanel
 
 ### Problem: Database connection error
 
@@ -336,7 +375,7 @@ Backend logs are in:
 
 **Fix:**
 - Frontend: Re-build (`npm run build`) and re-upload `dist/`
-- Backend: Restart Node.js app in cPanel Node.js Selector
+- Backend: Re-upload PHP files (no restart needed, PHP processes each request fresh)
 
 ---
 
@@ -345,22 +384,22 @@ Backend logs are in:
 ```
 /home/yourusername/
 ├── api/                          # Backend (can be any name)
-│   ├── server.js
-│   ├── app.js
-│   ├── package.json
-│   ├── .env                      # Your environment variables
-│   ├── .htaccess                 # Disables Passenger in this folder
-│   └── routes/
-│       ├── clients.js
-│       ├── hosts.js
-│       ├── templates.js
-│       ├── auth.js
-│       └── settings.js
+│   ├── index.php                 # Main entry point
+│   ├── .htaccess                 # API routing rules
+│   ├── .env                      # Your database credentials
+│   ├── config/
+│   │   └── database.php          # Database connection
+│   └── api/
+│       ├── auth.php              # Authentication logic
+│       ├── clients.php           # Client management
+│       ├── hosts.php             # Host URL management
+│       ├── templates.php         # WhatsApp templates
+│       └── settings.php          # App settings
 │
 └── public_html/
     └── panel.a1hoster.pk/        # Frontend (your domain folder)
         ├── index.html
-        ├── .htaccess             # React Router + API routing
+        ├── .htaccess             # React Router + API routing to backend
         ├── assets/
         ├── robots.txt
         └── favicon.ico
@@ -372,25 +411,33 @@ Backend logs are in:
 
 ✅ **Flexible Configuration:**
 - Backend can be in ANY folder under `/home/yourusername/`
-- Just update "Application Root" in Node.js Selector
+- Just update RewriteRule path in public_html `.htaccess`
 - Frontend works with any domain - no code changes needed
 
 ✅ **No Hardcoded Paths:**
-- Everything is configured via cPanel Node.js Selector
+- Backend location is only defined in public_html `.htaccess`
 - Frontend automatically uses `/api` for all requests
-- `.htaccess` lets Passenger handle API routing
+- PHP processes requests on-demand (no background service needed)
+
+✅ **Simple Maintenance:**
+- No Node.js app to monitor or restart
+- PHP files are processed fresh on each request
+- Easy to update: just upload new files
+- Standard cPanel hosting - no special requirements
 
 ✅ **Future Changes:**
-- To change backend location: Update "Application Root" in Node.js Selector
-- To change domain: Update "Domain" in Node.js Selector and move frontend files
-- No code changes required!
+- To change backend location: Update RewriteRule in public_html `.htaccess`
+- To change domain: Move frontend files to new domain folder
+- Update `.env` file if database credentials change
 
 ---
 
 ## Support
 
 If you encounter issues:
-1. Check Node.js app logs in cPanel
-2. Check browser console (F12)
-3. Test API endpoints with curl
+1. Check PHP error logs in cPanel → Errors
+2. Check browser console (F12) for frontend errors
+3. Test API endpoints with curl or browser
 4. Verify database connection in phpMyAdmin
+5. Check `.htaccess` rewrite rules are correct
+6. Ensure PHP version is 7.4+ (cPanel → MultiPHP Manager)

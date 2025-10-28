@@ -1,1 +1,15 @@
-PassengerEnabled off
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /api/
+  
+  # Route all requests to index.php
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule ^(.*)$ index.php [QSA,L]
+</IfModule>
+
+# Security: Deny access to sensitive files
+<FilesMatch "^\.env$">
+  Order allow,deny
+  Deny from all
+</FilesMatch>
