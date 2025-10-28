@@ -2,10 +2,11 @@
   RewriteEngine On
   RewriteBase /
   
-  # Proxy API requests to Node.js backend app
-  # The backend app runs via Passenger at /iptv-api
-  RewriteCond %{REQUEST_URI} ^/api/
-  RewriteRule ^api/(.*)$ /iptv-api/$1 [L,QSA]
+  # Don't rewrite API requests - let Passenger handle them
+  # Passenger intercepts /api/ based on Node.js Selector configuration
+  RewriteCond %{REQUEST_URI} ^/api/ [OR]
+  RewriteCond %{REQUEST_URI} ^/api$
+  RewriteRule ^ - [L]
   
   # Serve existing files/directories directly
   RewriteCond %{REQUEST_FILENAME} !-f

@@ -31,15 +31,15 @@ pool.getConnection()
     console.error('❌ MySQL Connection Error:', err);
   });
 
-// Routes
-app.use('/api/clients', require('./routes/clients'));
-app.use('/api/hosts', require('./routes/hosts'));
-app.use('/api/templates', require('./routes/templates'));
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/settings', require('./routes/settings'));
+// Routes - use base path / since cPanel Node.js Selector adds /api prefix
+app.use('/clients', require('./routes/clients'));
+app.use('/hosts', require('./routes/hosts'));
+app.use('/templates', require('./routes/templates'));
+app.use('/auth', require('./routes/auth'));
+app.use('/settings', require('./routes/settings'));
 
 // Health check
-app.get('/api/health', (req, res) => {
+app.get('/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date() });
 });
 
