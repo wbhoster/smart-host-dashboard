@@ -36,7 +36,7 @@ export const storage = {
   // Clients - API calls
   getClients: async (): Promise<Client[]> => {
     try {
-      const response = await fetch(`${API_BASE_URL}/clients`);
+      const response = await fetch(`${API_BASE_URL}/clients.php`);
       if (!response.ok) throw new Error('Failed to fetch clients');
       return await response.json();
     } catch (error) {
@@ -51,7 +51,7 @@ export const storage = {
   },
 
   createClient: async (client: Client): Promise<void> => {
-    const response = await fetch(`${API_BASE_URL}/clients`, {
+    const response = await fetch(`${API_BASE_URL}/clients.php`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(client),
@@ -60,7 +60,7 @@ export const storage = {
   },
 
   updateClient: async (client: Client): Promise<void> => {
-    const response = await fetch(`${API_BASE_URL}/clients/${client.id}`, {
+    const response = await fetch(`${API_BASE_URL}/clients.php?id=${client.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(client),
@@ -69,7 +69,7 @@ export const storage = {
   },
 
   deleteClient: async (id: string): Promise<void> => {
-    const response = await fetch(`${API_BASE_URL}/clients/${id}`, {
+    const response = await fetch(`${API_BASE_URL}/clients.php?id=${id}`, {
       method: 'DELETE',
     });
     if (!response.ok) throw new Error('Failed to delete client');
@@ -78,7 +78,7 @@ export const storage = {
   // Host URLs - API calls
   getHostUrls: async (): Promise<HostUrl[]> => {
     try {
-      const response = await fetch(`${API_BASE_URL}/hosts`);
+      const response = await fetch(`${API_BASE_URL}/hosts.php`);
       if (!response.ok) throw new Error('Failed to fetch host URLs');
       return await response.json();
     } catch (error) {
@@ -93,7 +93,7 @@ export const storage = {
   },
 
   createHostUrl: async (host: HostUrl): Promise<void> => {
-    const response = await fetch(`${API_BASE_URL}/hosts`, {
+    const response = await fetch(`${API_BASE_URL}/hosts.php`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(host),
@@ -102,7 +102,7 @@ export const storage = {
   },
 
   updateHostUrl: async (host: HostUrl): Promise<void> => {
-    const response = await fetch(`${API_BASE_URL}/hosts/${host.id}`, {
+    const response = await fetch(`${API_BASE_URL}/hosts.php?id=${host.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(host),
@@ -111,7 +111,7 @@ export const storage = {
   },
 
   deleteHostUrl: async (id: string): Promise<void> => {
-    const response = await fetch(`${API_BASE_URL}/hosts/${id}`, {
+    const response = await fetch(`${API_BASE_URL}/hosts.php?id=${id}`, {
       method: 'DELETE',
     });
     if (!response.ok) throw new Error('Failed to delete host URL');
@@ -120,7 +120,7 @@ export const storage = {
   // Templates - API calls
   getTemplates: async (): Promise<WhatsAppTemplate[]> => {
     try {
-      const response = await fetch(`${API_BASE_URL}/templates`);
+      const response = await fetch(`${API_BASE_URL}/templates.php`);
       if (!response.ok) throw new Error('Failed to fetch templates');
       return await response.json();
     } catch (error) {
@@ -131,7 +131,7 @@ export const storage = {
   
   saveTemplates: async (templates: WhatsAppTemplate[]): Promise<void> => {
     for (const template of templates) {
-      const response = await fetch(`${API_BASE_URL}/templates/${template.id}`, {
+      const response = await fetch(`${API_BASE_URL}/templates.php?id=${template.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: template.message }),
@@ -151,7 +151,7 @@ export const storage = {
 
   login: async (username: string, password: string): Promise<boolean> => {
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/login`, {
+      const response = await fetch(`${API_BASE_URL}/auth.php`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
@@ -171,7 +171,7 @@ export const storage = {
   // Settings - API calls
   getSetting: async (key: string): Promise<string | null> => {
     try {
-      const response = await fetch(`${API_BASE_URL}/settings/${key}`);
+      const response = await fetch(`${API_BASE_URL}/settings.php?key=${encodeURIComponent(key)}`);
       if (!response.ok) return null;
       const data = await response.json();
       return data.value;
@@ -182,7 +182,7 @@ export const storage = {
   },
 
   saveSetting: async (key: string, value: string): Promise<void> => {
-    const response = await fetch(`${API_BASE_URL}/settings/${key}`, {
+    const response = await fetch(`${API_BASE_URL}/settings.php?key=${encodeURIComponent(key)}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ value }),
