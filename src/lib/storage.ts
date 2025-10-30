@@ -28,6 +28,18 @@ export interface WhatsAppTemplate {
   message: string;
 }
 
+export interface WhatsAppLog {
+  id?: number;
+  clientId?: string | null;
+  clientName?: string | null;
+  username?: string | null;
+  phone: string;
+  message: string;
+  status: 'sent' | 'failed';
+  errorMessage?: string | null;
+  createdAt?: string;
+}
+
 const STORAGE_KEYS = {
   ADMIN_AUTH: 'iptv_admin_auth',
 };
@@ -139,6 +151,27 @@ export const storage = {
       if (!response.ok) throw new Error(`Failed to update template ${template.id}`);
     }
   },
+
+  // WhatsApp Logs - API calls
+  getWhatsAppLogs: async (page = 1, limit = 20): Promise<{ data: any[]; total: number; page: number; limit: number }> => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/whatsapp_logs.php?page=${page}&limit=${limit}`);
+      if (!res.ok) throw new Error('Failed to fetch logs');
+      return await res.json();
+    } catch (e) {
+      console.error('Error fetching logs:', e);
+      return { data: [], total: 0, page, limit };
+    }
+  },
+
+  createWhatsAppLog: async (log: Partial<WhatsAppLog>): Promise<void> => {
+    const res = await fetch(`${API_BASE_URL}/whatsapp_logs.php`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(log),
+    });
+    if (!res.ok) throw new Error('Failed to create log');
+  },
   
   // Admin Auth - Still using localStorage for session
   isAuthenticated: (): boolean => {
@@ -155,8 +188,8 @@ export const storage = {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
+        credentials: 'include',
       });
-      
       if (response.ok) {
         storage.setAuthenticated(true);
         return true;
@@ -164,6 +197,23 @@ export const storage = {
       return false;
     } catch (error) {
       console.error('Login error:', error);
+      return false;
+    }
+  },
+
+  logout: async (): Promise<void> => {
+    try {
+      await fetch(`${API_BASE_URL}/auth.php`, { method: 'DELETE', credentials: 'include' });
+    } catch {}
+  },
+
+  checkAuth: async (): Promise<boolean> => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/auth.php`, { method: 'GET', credentials: 'include' });
+      if (!res.ok) return false;
+      const data = await res.json();
+      return !!data.authenticated;
+    } catch {
       return false;
     }
   },

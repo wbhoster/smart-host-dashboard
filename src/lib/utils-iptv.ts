@@ -41,13 +41,27 @@ export const fillTemplate = (template: string, client: Client): string => {
 };
 
 // WhatsApp API send function using 360Messenger
-export const sendWhatsAppMessage = async (phoneNumber: string, message: string): Promise<boolean> => {
+export const sendWhatsAppMessage = async (
+  phoneNumber: string,
+  message: string,
+  meta?: { clientId?: string; clientName?: string; username?: string }
+): Promise<boolean> => {
   try {
     const { storage } = await import('./storage');
     const apiKey = await storage.getSetting('whatsapp_api_key');
     
     if (!apiKey) {
       console.warn('WhatsApp API key not configured');
+      // Log failed attempt
+      await storage.createWhatsAppLog({
+        clientId: meta?.clientId ?? null,
+        clientName: meta?.clientName ?? null,
+        username: meta?.username ?? null,
+        phone: phoneNumber,
+        message,
+        status: 'failed',
+        errorMessage: 'API key not configured',
+      });
       return false;
     }
 
@@ -66,12 +80,42 @@ export const sendWhatsAppMessage = async (phoneNumber: string, message: string):
     if (!response.ok) {
       const errorText = await response.text();
       console.error('WhatsApp API error:', errorText);
+      await storage.createWhatsAppLog({
+        clientId: meta?.clientId ?? null,
+        clientName: meta?.clientName ?? null,
+        username: meta?.username ?? null,
+        phone: phoneNumber,
+        message,
+        status: 'failed',
+        errorMessage: errorText,
+      });
       return false;
     }
 
+    await storage.createWhatsAppLog({
+      clientId: meta?.clientId ?? null,
+      clientName: meta?.clientName ?? null,
+      username: meta?.username ?? null,
+      phone: phoneNumber,
+      message,
+      status: 'sent',
+    });
+
     return true;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Failed to send WhatsApp message:', error);
+    try {
+      const { storage } = await import('./storage');
+      await storage.createWhatsAppLog({
+        clientId: meta?.clientId ?? null,
+        clientName: meta?.clientName ?? null,
+        username: meta?.username ?? null,
+        phone: phoneNumber,
+        message,
+        status: 'failed',
+        errorMessage: String(error?.message || error),
+      });
+    } catch {}
     return false;
   }
 };

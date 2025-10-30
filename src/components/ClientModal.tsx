@@ -34,7 +34,8 @@ const ClientModal = ({ open, onOpenChange, client, hostUrls, onSuccess, isEditMo
     } else {
       setFullName('');
       setWhatsappNumber('');
-      setSelectedHostUrl(hostUrls[0]?.url || '');
+      const activeHosts = hostUrls.filter(h => h.isActive);
+      setSelectedHostUrl(activeHosts[0]?.url || '');
       setPackageDuration(1);
     }
   }, [client, open, hostUrls]);
@@ -88,7 +89,7 @@ const ClientModal = ({ open, onOpenChange, client, hostUrls, onSuccess, isEditMo
         const template = templates.find(t => t.type === (client ? 'renewal' : 'welcome'));
         if (template) {
           const message = fillTemplate(template.message, newClient);
-          const sent = await sendWhatsAppMessage(whatsappNumber, message);
+          const sent = await sendWhatsAppMessage(whatsappNumber, message, { clientId: newClient.id, clientName: newClient.fullName, username: newClient.username });
           
           if (sent) {
             toast({
@@ -173,7 +174,7 @@ const ClientModal = ({ open, onOpenChange, client, hostUrls, onSuccess, isEditMo
                 <SelectValue placeholder="Select host URL" />
               </SelectTrigger>
               <SelectContent>
-                {hostUrls.map((host) => (
+                {hostUrls.filter(h => h.isActive).map((host) => (
                   <SelectItem key={host.id} value={host.url}>
                     {host.name}
                   </SelectItem>

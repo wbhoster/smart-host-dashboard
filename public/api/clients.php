@@ -33,17 +33,40 @@ try {
             break;
         case 'POST':
             $data = json_decode(file_get_contents('php://input'), true) ?? [];
+
+            $id = $data['id'] ?? uniqid('client-');
+            $fullName = trim($data['fullName'] ?? '');
+            $username = trim($data['username'] ?? '');
+            $password = trim($data['password'] ?? '');
+            $hostUrl = trim($data['hostUrl'] ?? '');
+            $package = max(1, (int)($data['packageDuration'] ?? 1));
+            $createdAt = date('Y-m-d H:i:s');
+
+            // Compute expiry date and status on server to ensure MySQL format
+            $dt = new DateTime($createdAt);
+            $dt->modify("+{$package} months");
+            $expiryDate = $dt->format('Y-m-d H:i:s');
+
+            $daysUntilExpiry = (strtotime($expiryDate) - time()) / (60 * 60 * 24);
+            if ($daysUntilExpiry < 0) {
+                $status = 'expired';
+            } elseif ($daysUntilExpiry <= 7) {
+                $status = 'expiring-soon';
+            } else {
+                $status = 'active';
+            }
+
             $stmt = $pdo->prepare('INSERT INTO clients (id, full_name, username, password, host_url, package_duration, created_at, expiry_date, status, whatsapp_number) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
             $stmt->execute([
-                $data['id'] ?? uniqid('client-'),
-                $data['fullName'] ?? '',
-                $data['username'] ?? '',
-                $data['password'] ?? '',
-                $data['hostUrl'] ?? '',
-                (int)($data['packageDuration'] ?? 1),
-                $data['createdAt'] ?? date('Y-m-d H:i:s'),
-                $data['expiryDate'] ?? date('Y-m-d H:i:s'),
-                $data['status'] ?? 'active',
+                $id,
+                $fullName,
+                $username,
+                $password,
+                $hostUrl,
+                $package,
+                $createdAt,
+                $expiryDate,
+                $status,
                 $data['whatsappNumber'] ?? '',
             ]);
             echo json_encode(['success' => true]);
@@ -52,16 +75,36 @@ try {
             $id = $_GET['id'] ?? null;
             if (!$id) { http_response_code(400); echo json_encode(['error' => 'Missing id']); break; }
             $data = json_decode(file_get_contents('php://input'), true) ?? [];
-            $stmt = $pdo->prepare('UPDATE clients SET full_name = ?, username = ?, password = ?, host_url = ?, package_duration = ?, created_at = ?, expiry_date = ?, status = ?, whatsapp_number = ? WHERE id = ?');
+
+            // Recalculate expiry based on original created_at and new package duration
+            $stmt = $pdo->prepare('SELECT created_at FROM clients WHERE id = ?');
+            $stmt->execute([$id]);
+            $row = $stmt->fetch();
+            if (!$row) { http_response_code(404); echo json_encode(['error' => 'Client not found']); break; }
+
+            $package = max(1, (int)($data['packageDuration'] ?? 1));
+            $dt = new DateTime($row['created_at']);
+            $dt->modify("+{$package} months");
+            $expiryDate = $dt->format('Y-m-d H:i:s');
+
+            $daysUntilExpiry = (strtotime($expiryDate) - time()) / (60 * 60 * 24);
+            if ($daysUntilExpiry < 0) {
+                $status = 'expired';
+            } elseif ($daysUntilExpiry <= 7) {
+                $status = 'expiring-soon';
+            } else {
+                $status = 'active';
+            }
+
+            $stmt = $pdo->prepare('UPDATE clients SET full_name = ?, username = ?, password = ?, host_url = ?, package_duration = ?, expiry_date = ?, status = ?, whatsapp_number = ? WHERE id = ?');
             $stmt->execute([
                 $data['fullName'] ?? '',
                 $data['username'] ?? '',
                 $data['password'] ?? '',
                 $data['hostUrl'] ?? '',
-                (int)($data['packageDuration'] ?? 1),
-                $data['createdAt'] ?? date('Y-m-d H:i:s'),
-                $data['expiryDate'] ?? date('Y-m-d H:i:s'),
-                $data['status'] ?? 'active',
+                $package,
+                $expiryDate,
+                $status,
                 $data['whatsappNumber'] ?? '',
                 $id,
             ]);

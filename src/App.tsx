@@ -13,6 +13,7 @@ import Hosts from "./pages/Hosts";
 import Templates from "./pages/Templates";
 import WhatsAppAPI from "./pages/WhatsAppAPI";
 import SendMessage from "./pages/SendMessage";
+import WhatsAppLogs from "./pages/WhatsAppLogs";
 import Layout from "./components/Layout";
 import NotFound from "./pages/NotFound";
 
@@ -21,6 +22,8 @@ const queryClient = new QueryClient();
 const App = () => {
   useEffect(() => {
     storage.initialize();
+    // Sync auth with server session on app start
+    storage.checkAuth?.().then((authed) => storage.setAuthenticated(!!authed));
   }, []);
 
   return (
@@ -39,6 +42,7 @@ const App = () => {
                 <Route path="/templates" element={<Templates />} />
                 <Route path="/whatsapp-api" element={<WhatsAppAPI />} />
                 <Route path="/send-message" element={<SendMessage />} />
+                <Route path="/whatsapp-logs" element={<WhatsAppLogs />} />
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>

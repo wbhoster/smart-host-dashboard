@@ -10,7 +10,8 @@ import {
   Monitor,
   Moon,
   Sun,
-  Settings
+  Settings,
+  FileText
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -25,6 +26,7 @@ const navItems = [
   { to: '/templates', icon: MessageSquare, label: 'Templates' },
   { to: '/whatsapp-api', icon: Settings, label: 'WhatsApp API' },
   { to: '/send-message', icon: Send, label: 'Send Message' },
+  { to: '/whatsapp-logs', icon: FileText, label: 'WhatsApp Logs' },
 ];
 
 const Sidebar = () => {
@@ -32,7 +34,10 @@ const Sidebar = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await storage.logout();
+    } catch {}
     storage.setAuthenticated(false);
     toast({
       title: 'Logged out',

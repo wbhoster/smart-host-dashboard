@@ -17,7 +17,7 @@ const SendMessage = () => {
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const apiKey = localStorage.getItem('whatsapp_api_key');
+    const apiKey = await (await import('@/lib/storage')).storage.getSetting('whatsapp_api_key');
     if (!apiKey) {
       toast({
         title: 'Error',
