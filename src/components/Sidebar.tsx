@@ -11,7 +11,8 @@ import {
   Moon,
   Sun,
   Settings,
-  FileText
+  FileText,
+  Megaphone
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -26,6 +27,7 @@ const navItems = [
   { to: '/templates', icon: MessageSquare, label: 'Templates' },
   { to: '/whatsapp-api', icon: Settings, label: 'WhatsApp API' },
   { to: '/send-message', icon: Send, label: 'Send Message' },
+  { to: '/campaigns', icon: Megaphone, label: 'Campaigns' },
   { to: '/whatsapp-logs', icon: FileText, label: 'WhatsApp Logs' },
 ];
 

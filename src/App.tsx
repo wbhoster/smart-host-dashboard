@@ -14,6 +14,9 @@ import Templates from "./pages/Templates";
 import WhatsAppAPI from "./pages/WhatsAppAPI";
 import SendMessage from "./pages/SendMessage";
 import WhatsAppLogs from "./pages/WhatsAppLogs";
+import Campaigns from "./pages/Campaigns";
+import CampaignCreate from "./pages/CampaignCreate";
+import CampaignReport from "./pages/CampaignReport";
 import Layout from "./components/Layout";
 import NotFound from "./pages/NotFound";
 
@@ -36,12 +39,15 @@ const App = () => {
             <Routes>
               <Route path="/" element={<Auth />} />
               <Route element={<Layout />}>
-                <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/clients" element={<Clients />} />
                 <Route path="/hosts" element={<Hosts />} />
                 <Route path="/templates" element={<Templates />} />
                 <Route path="/whatsapp-api" element={<WhatsAppAPI />} />
                 <Route path="/send-message" element={<SendMessage />} />
+                <Route path="/campaigns" element={<Campaigns />} />
+                <Route path="/campaigns/create" element={<CampaignCreate />} />
+                <Route path="/campaigns/:id" element={<CampaignReport />} />
                 <Route path="/whatsapp-logs" element={<WhatsAppLogs />} />
               </Route>
               <Route path="*" element={<NotFound />} />
