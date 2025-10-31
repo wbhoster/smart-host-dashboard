@@ -190,14 +190,12 @@ const CampaignReport = () => {
   const exportToCSV = () => {
     if (!recipients.length) return;
 
-    const headers = ['Name', 'Phone', 'Status', 'Sent At', 'Delivered At', 'Read At', 'Error'];
+    const headers = ['Name', 'Phone', 'Status', 'Sent At', 'Error'];
     const rows = recipients.map(r => [
       r.name,
       r.phone,
       r.status,
       r.sentAt || '',
-      r.deliveredAt || '',
-      r.readAt || '',
       r.errorMessage || ''
     ]);
 
@@ -225,12 +223,8 @@ const CampaignReport = () => {
     ? (campaign.sentCount / campaign.totalRecipients) * 100 
     : 0;
 
-  const deliveryRate = campaign.sentCount > 0
-    ? ((campaign.deliveredCount / campaign.sentCount) * 100).toFixed(1)
-    : '0';
-
-  const readRate = campaign.deliveredCount > 0
-    ? ((campaign.readCount / campaign.deliveredCount) * 100).toFixed(1)
+  const successRate = campaign.totalRecipients > 0
+    ? ((campaign.sentCount / campaign.totalRecipients) * 100).toFixed(1)
     : '0';
 
   const totalPages = Math.max(1, Math.ceil(recipientTotal / PAGE_SIZE));
@@ -281,7 +275,7 @@ const CampaignReport = () => {
         </Alert>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
           <CardHeader className="pb-3">
             <CardDescription>Total Recipients</CardDescription>
@@ -297,26 +291,13 @@ const CampaignReport = () => {
 
         <Card>
           <CardHeader className="pb-3">
-            <CardDescription>Delivered</CardDescription>
-            <CardTitle className="text-3xl text-green-600">{campaign.deliveredCount}</CardTitle>
+            <CardDescription>Successfully Sent</CardDescription>
+            <CardTitle className="text-3xl text-green-600">{campaign.sentCount}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 text-green-600" />
-              <span className="text-sm text-muted-foreground">{deliveryRate}% delivery rate</span>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-3">
-            <CardDescription>Read</CardDescription>
-            <CardTitle className="text-3xl text-blue-600">{campaign.readCount}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-2">
-              <Eye className="w-4 h-4 text-blue-600" />
-              <span className="text-sm text-muted-foreground">{readRate}% read rate</span>
+              <span className="text-sm text-muted-foreground">{successRate}% success rate</span>
             </div>
           </CardContent>
         </Card>
@@ -356,8 +337,6 @@ const CampaignReport = () => {
               <TabsTrigger value="">All ({recipientTotal})</TabsTrigger>
               <TabsTrigger value="pending">Pending</TabsTrigger>
               <TabsTrigger value="sent">Sent</TabsTrigger>
-              <TabsTrigger value="delivered">Delivered</TabsTrigger>
-              <TabsTrigger value="read">Read</TabsTrigger>
               <TabsTrigger value="failed">Failed</TabsTrigger>
             </TabsList>
 
@@ -369,16 +348,14 @@ const CampaignReport = () => {
                       <TableHead>Name</TableHead>
                       <TableHead>Phone</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead>Sent</TableHead>
-                      <TableHead>Delivered</TableHead>
-                      <TableHead>Read</TableHead>
+                      <TableHead>Sent At</TableHead>
                       <TableHead>Error</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {recipients.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={7} className="text-center py-10 text-muted-foreground">
+                        <TableCell colSpan={5} className="text-center py-10 text-muted-foreground">
                           No recipients found
                         </TableCell>
                       </TableRow>
@@ -390,7 +367,7 @@ const CampaignReport = () => {
                           <TableCell>
                             <Badge
                               variant={
-                                r.status === 'delivered' || r.status === 'read' ? 'default' :
+                                r.status === 'sent' ? 'default' :
                                 r.status === 'failed' ? 'destructive' : 'secondary'
                               }
                             >
@@ -399,12 +376,6 @@ const CampaignReport = () => {
                           </TableCell>
                           <TableCell className="text-xs">
                             {r.sentAt ? new Date(r.sentAt).toLocaleString() : '-'}
-                          </TableCell>
-                          <TableCell className="text-xs">
-                            {r.deliveredAt ? new Date(r.deliveredAt).toLocaleString() : '-'}
-                          </TableCell>
-                          <TableCell className="text-xs">
-                            {r.readAt ? new Date(r.readAt).toLocaleString() : '-'}
                           </TableCell>
                           <TableCell className="text-xs max-w-[200px] truncate" title={r.errorMessage || ''}>
                             {r.errorMessage || '-'}

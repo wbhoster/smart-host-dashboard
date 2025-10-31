@@ -21,8 +21,6 @@ $pdo->exec('CREATE TABLE IF NOT EXISTS campaigns (
   completed_at DATETIME NULL,
   total_recipients INT NOT NULL DEFAULT 0,
   sent_count INT NOT NULL DEFAULT 0,
-  delivered_count INT NOT NULL DEFAULT 0,
-  read_count INT NOT NULL DEFAULT 0,
   failed_count INT NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;');
 
@@ -34,11 +32,9 @@ $pdo->exec('CREATE TABLE IF NOT EXISTS campaign_recipients (
   name VARCHAR(255) NOT NULL,
   phone VARCHAR(32) NOT NULL,
   message_id VARCHAR(128) NULL,
-  status ENUM("pending","sent","delivered","read","failed") NOT NULL DEFAULT "pending",
+  status ENUM("pending","sent","failed") NOT NULL DEFAULT "pending",
   error_message TEXT NULL,
   sent_at DATETIME NULL,
-  delivered_at DATETIME NULL,
-  read_at DATETIME NULL,
   FOREIGN KEY (campaign_id) REFERENCES campaigns(id) ON DELETE CASCADE,
   INDEX idx_campaign_status (campaign_id, status),
   INDEX idx_message_id (message_id)
@@ -94,24 +90,30 @@ try {
     case 'POST':
       $data = json_decode(file_get_contents('php://input'), true) ?? [];
       
+      $id = $data['id'] ?? uniqid('camp_', true);
+      $scheduledAt = null;
+      if (!empty($data['scheduledAt'])) {
+        $scheduledAt = date('Y-m-d H:i:s', strtotime($data['scheduledAt']));
+      }
+      
       $stmt = $pdo->prepare('INSERT INTO campaigns (
         id, title, message, media_url, media_type, target_audience, 
         status, scheduled_at, created_at, total_recipients
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?)');
       
       $stmt->execute([
-        $data['id'] ?? uniqid('camp_', true),
+        $id,
         $data['title'] ?? '',
         $data['message'] ?? '',
         $data['mediaUrl'] ?? null,
         $data['mediaType'] ?? null,
         $data['targetAudience'] ?? 'all',
         $data['status'] ?? 'draft',
-        $data['scheduledAt'] ?? null,
+        $scheduledAt,
         $data['totalRecipients'] ?? 0
       ]);
       
-      echo json_encode(['success' => true, 'id' => $data['id'] ?? uniqid('camp_', true)]);
+      echo json_encode(['success' => true, 'id' => $id]);
       break;
 
     case 'PUT':
@@ -130,17 +132,24 @@ try {
       if (isset($data['message'])) { $fields[] = 'message = ?'; $values[] = $data['message']; }
       if (isset($data['mediaUrl'])) { $fields[] = 'media_url = ?'; $values[] = $data['mediaUrl']; }
       if (isset($data['mediaType'])) { $fields[] = 'media_type = ?'; $values[] = $data['mediaType']; }
-      if (isset($data['status'])) { $fields[] = 'status = ?'; $values[] = $data['status']; }
-      if (isset($data['scheduledAt'])) { $fields[] = 'scheduled_at = ?'; $values[] = $data['scheduledAt']; }
+      if (isset($data['status'])) { 
+        $fields[] = 'status = ?'; 
+        $values[] = $data['status'];
+        if ($data['status'] === 'completed') {
+          $fields[] = 'completed_at = NOW()';
+        }
+      }
+      if (isset($data['scheduledAt'])) {
+        $scheduledAt = null;
+        if (!empty($data['scheduledAt'])) {
+          $scheduledAt = date('Y-m-d H:i:s', strtotime($data['scheduledAt']));
+        }
+        $fields[] = 'scheduled_at = ?'; 
+        $values[] = $scheduledAt;
+      }
       if (isset($data['totalRecipients'])) { $fields[] = 'total_recipients = ?'; $values[] = $data['totalRecipients']; }
       if (isset($data['sentCount'])) { $fields[] = 'sent_count = ?'; $values[] = $data['sentCount']; }
-      if (isset($data['deliveredCount'])) { $fields[] = 'delivered_count = ?'; $values[] = $data['deliveredCount']; }
-      if (isset($data['readCount'])) { $fields[] = 'read_count = ?'; $values[] = $data['readCount']; }
       if (isset($data['failedCount'])) { $fields[] = 'failed_count = ?'; $values[] = $data['failedCount']; }
-      
-      if ($data['status'] === 'completed') {
-        $fields[] = 'completed_at = NOW()';
-      }
 
       $values[] = $_GET['id'];
       

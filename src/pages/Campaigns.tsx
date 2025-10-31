@@ -168,8 +168,8 @@ const Campaigns = () => {
                   <TableHead>Status</TableHead>
                   <TableHead>Progress</TableHead>
                   <TableHead>Recipients</TableHead>
-                  <TableHead>Delivered</TableHead>
-                  <TableHead>Read</TableHead>
+                  <TableHead>Sent</TableHead>
+                  <TableHead>Failed</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -199,7 +199,7 @@ const Campaigns = () => {
                           {campaign.title}
                         </TableCell>
                         <TableCell className="whitespace-nowrap">
-                          {new Date(campaign.createdAt).toLocaleDateString()}
+                          {campaign.createdAt ? new Date(campaign.createdAt).toLocaleDateString() : '-'}
                         </TableCell>
                         <TableCell>{getStatusBadge(campaign.status)}</TableCell>
                         <TableCell>
@@ -211,8 +211,8 @@ const Campaigns = () => {
                           </div>
                         </TableCell>
                         <TableCell>{campaign.totalRecipients}</TableCell>
-                        <TableCell className="text-green-600">{campaign.deliveredCount}</TableCell>
-                        <TableCell className="text-blue-600">{campaign.readCount}</TableCell>
+                        <TableCell className="text-green-600">{campaign.sentCount}</TableCell>
+                        <TableCell className="text-red-600">{campaign.failedCount}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-1">
                             <Button

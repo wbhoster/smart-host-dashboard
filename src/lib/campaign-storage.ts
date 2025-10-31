@@ -13,8 +13,6 @@ export interface Campaign {
   completedAt?: string | null;
   totalRecipients: number;
   sentCount: number;
-  deliveredCount: number;
-  readCount: number;
   failedCount: number;
 }
 
@@ -25,11 +23,9 @@ export interface CampaignRecipient {
   name: string;
   phone: string;
   messageId?: string | null;
-  status: 'pending' | 'sent' | 'delivered' | 'read' | 'failed';
+  status: 'pending' | 'sent' | 'failed';
   errorMessage?: string | null;
   sentAt?: string | null;
-  deliveredAt?: string | null;
-  readAt?: string | null;
 }
 
 export interface ImportedContact {

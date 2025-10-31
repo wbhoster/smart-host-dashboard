@@ -83,15 +83,16 @@ try {
       $values = [];
       
       if (isset($data['messageId'])) { $fields[] = 'message_id = ?'; $values[] = $data['messageId']; }
-      if (isset($data['status'])) { $fields[] = 'status = ?'; $values[] = $data['status']; }
-      if (isset($data['errorMessage'])) { $fields[] = 'error_message = ?'; $values[] = $data['errorMessage']; }
-      
-      if ($data['status'] === 'sent') {
-        $fields[] = 'sent_at = NOW()';
-      } elseif ($data['status'] === 'delivered') {
-        $fields[] = 'delivered_at = NOW()';
-      } elseif ($data['status'] === 'read') {
-        $fields[] = 'read_at = NOW()';
+      if (isset($data['status'])) { 
+        $fields[] = 'status = ?'; 
+        $values[] = $data['status']; 
+        if ($data['status'] === 'sent') {
+          $fields[] = 'sent_at = NOW()';
+        }
+      }
+      if (isset($data['errorMessage'])) { 
+        $fields[] = 'error_message = ?'; 
+        $values[] = $data['errorMessage']; 
       }
 
       $values[] = $_GET['id'];
