@@ -78,6 +78,16 @@ const CampaignReport = () => {
 
   const handleStartCampaign = async () => {
     if (!id || !campaign) return;
+    
+    // Validate recipients exist
+    if (campaign.totalRecipients === 0) {
+      toast({
+        title: 'Cannot Start Campaign',
+        description: 'No recipients found. Please add recipients first.',
+        variant: 'destructive',
+      });
+      return;
+    }
 
     setSending(true);
     
@@ -112,26 +122,35 @@ const CampaignReport = () => {
       if (result.sent > 0) {
         await loadCampaign();
         await loadRecipients();
+        
+        toast({
+          title: 'Batch Sent',
+          description: `Sent ${result.sent} messages, ${result.failed} failed`,
+        });
       }
 
-      if (!result.completed) {
+      if (!result.completed && result.remaining > 0) {
         // Continue sending after delay (respect rate limits)
         setTimeout(() => sendNextBatch(), 10000); // 10 second delay between batches
       } else {
         setSending(false);
+        await loadCampaign();
         toast({
           title: 'Campaign Completed',
-          description: `Sent ${campaign?.sentCount} messages`,
+          description: `Successfully sent ${campaign?.sentCount || 0} messages`,
         });
         if (intervalRef.current) clearInterval(intervalRef.current);
       }
-    } catch (error) {
+    } catch (error: any) {
       setSending(false);
       toast({
         title: 'Error',
-        description: 'Failed to send batch',
+        description: error?.message || 'Failed to send batch',
         variant: 'destructive',
       });
+      // Stop auto-retry on error
+      await campaignStorage.updateCampaign(id, { status: 'paused' });
+      await loadCampaign();
     }
   };
 
@@ -346,10 +365,10 @@ const CampaignReport = () => {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Name</TableHead>
-                      <TableHead>Phone</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Sent At</TableHead>
-                      <TableHead>Error</TableHead>
+                       <TableHead>Phone</TableHead>
+                       <TableHead>Status</TableHead>
+                       <TableHead>Sent At</TableHead>
+                       <TableHead className="max-w-[250px]">Error Details</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -374,12 +393,16 @@ const CampaignReport = () => {
                               {r.status}
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-xs">
-                            {r.sentAt ? new Date(r.sentAt).toLocaleString() : '-'}
-                          </TableCell>
-                          <TableCell className="text-xs max-w-[200px] truncate" title={r.errorMessage || ''}>
-                            {r.errorMessage || '-'}
-                          </TableCell>
+                           <TableCell className="text-xs">
+                             {r.sentAt ? new Date(r.sentAt).toLocaleString() : '-'}
+                           </TableCell>
+                           <TableCell className="text-xs max-w-[250px]">
+                             {r.errorMessage ? (
+                               <div className="text-red-600 break-words" title={r.errorMessage}>
+                                 {r.errorMessage}
+                               </div>
+                             ) : '-'}
+                           </TableCell>
                         </TableRow>
                       ))
                     )}

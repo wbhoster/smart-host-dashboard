@@ -71,9 +71,6 @@ const Auth = () => {
             <Button type="submit" className="w-full">
               Sign In
             </Button>
-            <p className="text-xs text-muted-foreground text-center mt-4">
-              Demo: admin / admin123
-            </p>
           </form>
         </CardContent>
       </Card>

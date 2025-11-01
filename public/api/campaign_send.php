@@ -27,7 +27,7 @@ try {
   }
 
   // Get API key
-  $apiKeyStmt = $pdo->prepare('SELECT value FROM settings WHERE setting_key = "whatsapp_api_key"');
+  $apiKeyStmt = $pdo->prepare('SELECT setting_value FROM settings WHERE setting_key = "whatsapp_api_key"');
   $apiKeyStmt->execute();
   $apiKey = $apiKeyStmt->fetchColumn();
 
@@ -88,36 +88,60 @@ try {
     );
 
     // Send individual message (360Messenger doesn't support true bulk in one request reliably)
+    // Format phone number for 360Messenger (remove + prefix)
+    $formattedPhone = str_replace('+', '', $recipient['phone']);
+    
     $ch = curl_init('https://api.360messenger.com/v2/sendMessage');
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_POST, true);
     curl_setopt($ch, CURLOPT_HTTPHEADER, [
       'Authorization: Bearer ' . $apiKey
     ]);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query([
-      'phonenumber' => $recipient['phone'],
-      'text' => $personalizedMessage,
-      'url' => $campaign['media_url'] ?? ''
-    ]));
+    
+    $postFields = [
+      'phonenumber' => $formattedPhone,
+      'text' => $personalizedMessage
+    ];
+    
+    // Only add URL if it exists and is not empty
+    if (!empty($campaign['media_url'])) {
+      $postFields['url'] = $campaign['media_url'];
+    }
+    
+    curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($postFields));
 
     $response = curl_exec($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curlError = curl_error($ch);
     curl_close($ch);
 
     if ($httpCode === 201 || $httpCode === 200) {
       $result = json_decode($response, true);
-      $messageId = $result['data'][0]['id'] ?? null;
-
-      // Update recipient status
-      $updateStmt = $pdo->prepare('UPDATE campaign_recipients SET status = "sent", message_id = ?, sent_at = NOW() WHERE id = ?');
-      $updateStmt->execute([$messageId, $recipient['id']]);
       
-      $sentCount++;
-      $messageIds[] = $messageId;
+      // Check if API response indicates success
+      if (isset($result['success']) && $result['success'] === true) {
+        $messageId = $result['data'][0]['id'] ?? null;
+
+        // Update recipient status
+        $updateStmt = $pdo->prepare('UPDATE campaign_recipients SET status = "sent", message_id = ?, sent_at = NOW() WHERE id = ?');
+        $updateStmt->execute([$messageId, $recipient['id']]);
+        
+        $sentCount++;
+        if ($messageId) {
+          $messageIds[] = $messageId;
+        }
+      } else {
+        // API returned 200/201 but with error
+        $errorMsg = $result['message'] ?? json_encode($result);
+        $updateStmt = $pdo->prepare('UPDATE campaign_recipients SET status = "failed", error_message = ? WHERE id = ?');
+        $updateStmt->execute(['API Error: ' . $errorMsg, $recipient['id']]);
+        $failedCount++;
+      }
     } else {
-      // Failed
+      // HTTP error
+      $errorMsg = $curlError ? $curlError : 'HTTP ' . $httpCode . ': ' . substr($response, 0, 200);
       $updateStmt = $pdo->prepare('UPDATE campaign_recipients SET status = "failed", error_message = ? WHERE id = ?');
-      $updateStmt->execute(['HTTP ' . $httpCode . ': ' . $response, $recipient['id']]);
+      $updateStmt->execute([$errorMsg, $recipient['id']]);
       
       $failedCount++;
     }
