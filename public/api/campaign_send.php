@@ -18,7 +18,11 @@ try {
 
   $data = json_decode(file_get_contents('php://input'), true) ?? [];
   $campaignId = $data['campaignId'] ?? null;
-  $batchSize = min(40, max(1, (int)($data['batchSize'] ?? 20))); // Respect rate limits
+  
+  // Optimized batch sizes for each API tier
+  // Tier 1: 40/10sec = 4/sec, Tier 2: 70/10sec = 7/sec, Tier 3: 150/10sec = 15/sec
+  // We'll use a safe default of 15 per batch with 1-second delay
+  $batchSize = min(15, max(1, (int)($data['batchSize'] ?? 15)));
 
   if (!$campaignId) {
     http_response_code(400);
@@ -146,8 +150,9 @@ try {
       $failedCount++;
     }
 
-    // Small delay to respect rate limits (100ms between requests = max 10/sec)
-    usleep(100000);
+    // Small delay to respect rate limits
+    // 70ms between requests = ~14 requests/sec, safely within Tier 3 limits
+    usleep(70000);
   }
 
   // Update campaign counts

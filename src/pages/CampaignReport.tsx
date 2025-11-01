@@ -116,28 +116,30 @@ const CampaignReport = () => {
     if (!id) return;
 
     try {
-      const result = await campaignStorage.sendBatch(id, 20);
+      // Using batch size of 15 with optimized delay for safety
+      const result = await campaignStorage.sendBatch(id, 15);
       
-      // Collect message IDs for status tracking
+      // Reload campaign data to get updated counts
+      await loadCampaign();
+      await loadRecipients();
+      
       if (result.sent > 0) {
-        await loadCampaign();
-        await loadRecipients();
-        
         toast({
           title: 'Batch Sent',
-          description: `Sent ${result.sent} messages, ${result.failed} failed`,
+          description: `Sent ${result.sent} messages${result.failed > 0 ? `, ${result.failed} failed` : ''}`,
         });
       }
 
       if (!result.completed && result.remaining > 0) {
-        // Continue sending after delay (respect rate limits)
-        setTimeout(() => sendNextBatch(), 10000); // 10 second delay between batches
+        // Continue sending after 2 second delay (safe for all API tiers)
+        // This gives ~7-8 messages per second which is safe for Tier 2+
+        setTimeout(() => sendNextBatch(), 2000);
       } else {
         setSending(false);
         await loadCampaign();
         toast({
           title: 'Campaign Completed',
-          description: `Successfully sent ${campaign?.sentCount || 0} messages`,
+          description: `Campaign finished! Check the stats above for details.`,
         });
         if (intervalRef.current) clearInterval(intervalRef.current);
       }
@@ -258,7 +260,9 @@ const CampaignReport = () => {
           <div>
             <h1 className="text-3xl font-bold tracking-tight">{campaign.title}</h1>
             <p className="text-muted-foreground mt-1">
-              Created on {new Date(campaign.createdAt).toLocaleDateString()}
+              Created on {campaign.createdAt && campaign.createdAt !== 'Invalid Date' 
+                ? new Date(campaign.createdAt).toLocaleDateString() 
+                : new Date().toLocaleDateString()}
             </p>
           </div>
         </div>

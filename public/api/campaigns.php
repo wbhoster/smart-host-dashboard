@@ -55,6 +55,15 @@ try {
           echo json_encode(['error' => 'Campaign not found']);
           exit;
         }
+        // Ensure dates are properly formatted
+        if (!$campaign['created_at']) {
+          $campaign['created_at'] = date('Y-m-d H:i:s');
+        }
+        // Ensure counts are integers
+        $campaign['total_recipients'] = (int)$campaign['total_recipients'];
+        $campaign['sent_count'] = (int)$campaign['sent_count'];
+        $campaign['failed_count'] = (int)$campaign['failed_count'];
+        
         echo json_encode($campaign);
       } else {
         // Get all campaigns
@@ -77,6 +86,16 @@ try {
         $stmt = $pdo->prepare("SELECT * FROM campaigns $where ORDER BY created_at DESC LIMIT ? OFFSET ?");
         $stmt->execute([...$params, $limit, $offset]);
         $campaigns = $stmt->fetchAll();
+
+        // Ensure all campaigns have proper data types and valid dates
+        foreach ($campaigns as &$campaign) {
+          if (!$campaign['created_at']) {
+            $campaign['created_at'] = date('Y-m-d H:i:s');
+          }
+          $campaign['total_recipients'] = (int)$campaign['total_recipients'];
+          $campaign['sent_count'] = (int)$campaign['sent_count'];
+          $campaign['failed_count'] = (int)$campaign['failed_count'];
+        }
 
         echo json_encode([
           'data' => $campaigns,

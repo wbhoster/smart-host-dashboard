@@ -1,17 +1,19 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import EmojiPicker, { EmojiClickData } from 'emoji-picker-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { campaignStorage } from '@/lib/campaign-storage';
 import { storage, Client } from '@/lib/storage';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Upload, X, Send, Calendar, Users, FileText } from 'lucide-react';
+import { ArrowLeft, Upload, X, Send, Calendar, Users, FileText, Smile, Bold, Italic } from 'lucide-react';
 
 const CampaignCreate = () => {
   const [title, setTitle] = useState('');
@@ -26,7 +28,9 @@ const CampaignCreate = () => {
   const [sendImmediately, setSendImmediately] = useState(true);
   const [loading, setLoading] = useState(false);
   const [clients, setClients] = useState<Client[]>([]);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const messageRef = useRef<HTMLTextAreaElement>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -76,6 +80,51 @@ const CampaignCreate = () => {
     };
     
     reader.readAsText(file);
+  };
+
+  const handleEmojiClick = (emojiData: EmojiClickData) => {
+    const textarea = messageRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const newMessage = message.substring(0, start) + emojiData.emoji + message.substring(end);
+    
+    setMessage(newMessage);
+    setShowEmojiPicker(false);
+    
+    // Set cursor position after emoji
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(start + emojiData.emoji.length, start + emojiData.emoji.length);
+    }, 0);
+  };
+
+  const wrapText = (wrapper: string) => {
+    const textarea = messageRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selectedText = message.substring(start, end);
+    
+    if (!selectedText) {
+      toast({
+        title: 'No Text Selected',
+        description: 'Please select text to format',
+        variant: 'default',
+      });
+      return;
+    }
+
+    const newMessage = message.substring(0, start) + wrapper + selectedText + wrapper + message.substring(end);
+    setMessage(newMessage);
+    
+    // Set cursor position after formatted text
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(end + (wrapper.length * 2), end + (wrapper.length * 2));
+    }, 0);
   };
 
   const getTargetRecipients = () => {
@@ -196,15 +245,62 @@ const CampaignCreate = () => {
 
           <div className="space-y-2">
             <Label htmlFor="message">Message *</Label>
-            <Textarea
-              id="message"
-              placeholder="Hello {{name}}, this is your message..."
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              rows={8}
-            />
+            <div className="relative">
+              <Textarea
+                ref={messageRef}
+                id="message"
+                placeholder="Hello {{name}}, this is your message..."
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                rows={8}
+              />
+              <div className="absolute bottom-2 right-2 flex items-center gap-1">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => wrapText('*')}
+                  title="Bold (select text first)"
+                  className="h-8 w-8 p-0"
+                >
+                  <Bold className="w-4 h-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => wrapText('_')}
+                  title="Italic (select text first)"
+                  className="h-8 w-8 p-0"
+                >
+                  <Italic className="w-4 h-4" />
+                </Button>
+                <Popover open={showEmojiPicker} onOpenChange={setShowEmojiPicker}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      title="Add Emoji"
+                      className="h-8 w-8 p-0"
+                    >
+                      <Smile className="w-4 h-4" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0 border-none" align="end">
+                    <EmojiPicker
+                      onEmojiClick={handleEmojiClick}
+                      width={350}
+                      height={400}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
             <p className="text-xs text-muted-foreground">
               Use placeholders: <code className="bg-muted px-1 py-0.5 rounded">{'{{name}}'}</code>, <code className="bg-muted px-1 py-0.5 rounded">{'{{phone}}'}</code>
+              <br />
+              Formatting: Select text and click <Bold className="w-3 h-3 inline" /> for *bold* or <Italic className="w-3 h-3 inline" /> for _italic_
             </p>
           </div>
 

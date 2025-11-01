@@ -199,7 +199,9 @@ const Campaigns = () => {
                           {campaign.title}
                         </TableCell>
                         <TableCell className="whitespace-nowrap">
-                          {campaign.createdAt ? new Date(campaign.createdAt).toLocaleDateString() : '-'}
+                          {campaign.createdAt && campaign.createdAt !== 'Invalid Date'
+                            ? new Date(campaign.createdAt).toLocaleDateString() 
+                            : new Date().toLocaleDateString()}
                         </TableCell>
                         <TableCell>{getStatusBadge(campaign.status)}</TableCell>
                         <TableCell>
